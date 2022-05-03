@@ -1,0 +1,304 @@
+{
+  "description": "YourPlace IVR",
+  "states": [
+    {
+      "name": "Trigger",
+      "type": "trigger",
+      "transitions": [
+        {
+          "event": "incomingMessage"
+        },
+        {
+          "next": "get_cpf",
+          "event": "incomingCall"
+        },
+        {
+          "event": "incomingRequest"
+        },
+        {
+          "event": "incomingParent"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 0,
+          "y": -10
+        }
+      }
+    },
+    {
+      "name": "get_cpf",
+      "type": "gather-input-on-call",
+      "transitions": [
+        {
+          "next": "check_cpf",
+          "event": "keypress"
+        },
+        {
+          "event": "speech"
+        },
+        {
+          "event": "timeout"
+        }
+      ],
+      "properties": {
+        "voice": "Polly.Ricardo",
+        "speech_timeout": "auto",
+        "offset": {
+          "x": 130,
+          "y": 180
+        },
+        "loop": 1,
+        "finish_on_key": "#",
+        "say": "Olá, obrigado por entrar em contato com a Iór Pleis. Por favor, me informe seu CPF para que eu possa localizar seu cadastro.",
+        "language": "pt-BR",
+        "stop_gather": true,
+        "gather_language": "pt",
+        "profanity_filter": "true",
+        "timeout": 5
+      }
+    },
+    {
+      "name": "check_cpf",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "cadastro_nao_encontrado",
+          "event": "noMatch"
+        },
+        {
+          "next": "status_pedido",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "If cpf not found",
+              "arguments": [
+                "{{widgets.get_cpf.Digits}}"
+              ],
+              "type": "equal_to",
+              "value": "123"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.get_cpf.Digits}}",
+        "offset": {
+          "x": 140,
+          "y": 420
+        }
+      }
+    },
+    {
+      "name": "status_pedido",
+      "type": "gather-input-on-call",
+      "transitions": [
+        {
+          "next": "check_resposta_status",
+          "event": "keypress"
+        },
+        {
+          "event": "speech"
+        },
+        {
+          "event": "timeout"
+        }
+      ],
+      "properties": {
+        "voice": "Polly.Ricardo",
+        "speech_timeout": "auto",
+        "offset": {
+          "x": 190,
+          "y": 660
+        },
+        "loop": 1,
+        "finish_on_key": "#",
+        "say": "Já encontrei seu cadastro. Você gostaria de saber o status de entrega da sua última compra? Se sim, digite 1. Se não, digite 2.",
+        "language": "pt-BR",
+        "stop_gather": true,
+        "gather_language": "pt",
+        "profanity_filter": "true",
+        "timeout": 5
+      }
+    },
+    {
+      "name": "check_resposta_status",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "event": "noMatch"
+        },
+        {
+          "next": "status_atual",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "If value equal_to 1",
+              "arguments": [
+                "{{widgets.status_pedido.Digits}}"
+              ],
+              "type": "equal_to",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "next": "encaminha_customer_service",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "If value equal_to 2",
+              "arguments": [
+                "{{widgets.status_pedido.Digits}}"
+              ],
+              "type": "equal_to",
+              "value": "2"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.status_pedido.Digits}}",
+        "offset": {
+          "x": 190,
+          "y": 910
+        }
+      }
+    },
+    {
+      "name": "status_atual",
+      "type": "say-play",
+      "transitions": [
+        {
+          "next": "link_status",
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "voice": "Polly.Ricardo",
+        "offset": {
+          "x": 200,
+          "y": 1180
+        },
+        "loop": 1,
+        "say": "Tenho uma ótima notícia. Seu pedido já está em rota de entrega. Com o link que vou te encaminhar via SMS você pode acompanhar sua entrega em tempo real.",
+        "language": "pt-BR"
+      }
+    },
+    {
+      "name": "send_to_flex_customer_service",
+      "type": "send-to-flex",
+      "transitions": [
+        {
+          "event": "callComplete"
+        },
+        {
+          "event": "failedToEnqueue"
+        },
+        {
+          "event": "callFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 590,
+          "y": 1450
+        },
+        "workflow": "WWc2cb8f377de0480ccecf94088acb09e6",
+        "channel": "TCa7ffbff10bfbd5bd70318c641ebf18a1",
+        "attributes": "{\"name\": \"{{trigger.message.ChannelAttributes.from}}\", \"channelType\": \"{{trigger.message.ChannelAttributes.channel_type}}\", \"channelSid\": \"{{trigger.message.ChannelSid}}\"}"
+      }
+    },
+    {
+      "name": "link_status",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 230,
+          "y": 1470
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "+5513988500119",
+        "body": "Ola, Victor. Segue o link para rastreio do seu pedido. Qualquer problema não hesite em nos contatar.\nAté mais!\n\n\nlink: link.teste.com/pedido_teste"
+      }
+    },
+    {
+      "name": "encaminha_customer_service",
+      "type": "say-play",
+      "transitions": [
+        {
+          "next": "send_to_flex_customer_service",
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "voice": "Polly.Ricardo",
+        "offset": {
+          "x": 560,
+          "y": 1140
+        },
+        "loop": 1,
+        "say": "Sem problemas. Vou te encaminhar ao time de suporte que irá seguir com seu atendimento.\nMuito obrigado!",
+        "language": "pt-BR"
+      }
+    },
+    {
+      "name": "cadastro_nao_encontrado",
+      "type": "say-play",
+      "transitions": [
+        {
+          "next": "send_to_flex_cadastro",
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "voice": "alice",
+        "offset": {
+          "x": -280,
+          "y": 370
+        },
+        "loop": 1,
+        "say": "Não encontrei seus dados. Vou te encaminhar ao time de cadastro.",
+        "language": "pt-BR"
+      }
+    },
+    {
+      "name": "send_to_flex_cadastro",
+      "type": "send-to-flex",
+      "transitions": [
+        {
+          "event": "callComplete"
+        },
+        {
+          "event": "failedToEnqueue"
+        },
+        {
+          "event": "callFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -350,
+          "y": 610
+        },
+        "workflow": "WWc8ffe217dc2251804772c8169070a687",
+        "channel": "TCa7ffbff10bfbd5bd70318c641ebf18a1",
+        "waitUrlMethod": "POST"
+      }
+    }
+  ],
+  "initial_state": "Trigger",
+  "flags": {
+    "allow_concurrent_calls": true
+  }
+}
